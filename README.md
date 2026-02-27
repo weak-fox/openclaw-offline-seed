@@ -12,12 +12,6 @@
 
 [![Release](https://img.shields.io/github/v/release/weak-fox/openclaw-offline-seed)](https://github.com/weak-fox/openclaw-offline-seed/releases)
 [![License](https://img.shields.io/github/license/weak-fox/openclaw-offline-seed)](https://github.com/weak-fox/openclaw-offline-seed/blob/main/LICENSE)
-[![Mode](https://img.shields.io/badge/Mode-offline_seed-0f7b3f?style=flat-square)](https://github.com/weak-fox/openclaw-offline-seed)
-[![Pattern](https://img.shields.io/badge/Pattern-init_container-F28C28?style=flat-square)](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/)
-[![Config](https://img.shields.io/badge/Config-seed--config.json-6E40C9?style=flat-square)](./config/seed-config.json)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white&style=flat-square)](https://docs.docker.com/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes&logoColor=white&style=flat-square)](https://kubernetes.io/docs/home/)
-[![Status](https://img.shields.io/badge/status-experimental-orange?style=flat-square)](https://github.com/weak-fox/openclaw-offline-seed/issues)
 
 ---
 
