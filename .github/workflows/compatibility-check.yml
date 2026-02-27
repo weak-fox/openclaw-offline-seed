@@ -70,6 +70,11 @@ jobs:
           docker volume rm -f "$SHARED_VOLUME" >/dev/null 2>&1 || true
           docker volume create "$SHARED_VOLUME" >/dev/null
 
+          docker run --rm -u 0 \
+            -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
+            alpine:3.20 \
+            sh -lc "mkdir -p '$OPENCLAW_HOME_DIR/workspace' '$OPENCLAW_HOME_DIR/extensions' && chown -R 1000:1000 '$OPENCLAW_HOME_DIR'"
+
           docker run --rm \
             -e OPENCLAW_HOME_DIR="$OPENCLAW_HOME_DIR" \
             -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
