@@ -1,0 +1,14 @@
+{
+  "plugins": [
+    {
+      "spec": "openclaw-mcp-adapter",
+      "enabled": true
+    }
+  ],
+  "skills": [
+    {
+      "slug": "weather",
+      "enabled": true
+    }
+  ]
+}

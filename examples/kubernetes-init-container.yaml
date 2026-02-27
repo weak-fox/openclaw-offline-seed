@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw
+spec:
+  template:
+    spec:
+      # Keep OPENCLAW_HOME_DIR and both mountPath values aligned.
+      # /home/node/.openclaw is only the default.
+      initContainers:
+        - name: openclaw-offline-seed
+          image: REGISTRY/openclaw-offline-seed:v1
+          command:
+            - /usr/local/bin/seed-init.sh
+          env:
+            - name: OPENCLAW_HOME_DIR
+              value: /home/node/.openclaw
+          volumeMounts:
+            - name: openclaw-data
+              mountPath: /home/node/.openclaw
+      containers:
+        - name: openclaw
+          image: REGISTRY/openclaw:2026.2.24
+          # Verification/testing shortcut only.
+          # For production, configure gateway.controlUi.allowedOrigins and follow:
+          # - https://docs.openclaw.ai/web/control-ui
+          # - https://docs.openclaw.ai/cli/security
+          command:
+            - sh
+            - -lc
+            - node openclaw.mjs config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true && node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured
+          volumeMounts:
+            - name: openclaw-data
+              mountPath: /home/node/.openclaw
+      volumes:
+        - name: openclaw-data
+          persistentVolumeClaim:
+            claimName: openclaw-data

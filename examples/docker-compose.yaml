@@ -1,0 +1,32 @@
+services:
+  openclaw-seed:
+    image: REGISTRY/openclaw-offline-seed:v1
+    command:
+      - /usr/local/bin/seed-init.sh
+    environment:
+      # Override OPENCLAW_HOME_DIR to match your runtime home path.
+      OPENCLAW_HOME_DIR: ${OPENCLAW_HOME_DIR:-/home/node/.openclaw}
+    volumes:
+      - openclaw-data:${OPENCLAW_HOME_DIR:-/home/node/.openclaw}
+    restart: "no"
+
+  openclaw:
+    image: REGISTRY/openclaw:2026.2.24
+    # Verification/testing shortcut only.
+    # For production, configure gateway.controlUi.allowedOrigins and follow:
+    # - https://docs.openclaw.ai/web/control-ui
+    # - https://docs.openclaw.ai/cli/security
+    command:
+      - sh
+      - -lc
+      - node openclaw.mjs config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true && node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured
+    depends_on:
+      openclaw-seed:
+        condition: service_completed_successfully
+    volumes:
+      - openclaw-data:${OPENCLAW_HOME_DIR:-/home/node/.openclaw}
+    ports:
+      - "18789:18789"
+
+volumes:
+  openclaw-data: {}
