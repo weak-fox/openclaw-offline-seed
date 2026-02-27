@@ -93,10 +93,14 @@ jobs:
             -e OPENCLAW_HOME_DIR="$OPENCLAW_HOME_DIR" \
             -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
             "${{ steps.resolve_image.outputs.openclaw_image }}" \
-            sh -lc "node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured"
+            sh -lc "node openclaw.mjs config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true && node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured"
 
           sleep 25
-          docker ps --filter "name=$RUNTIME_CONTAINER" --filter "status=running" --format "{{.Names}}" | grep -q "^$RUNTIME_CONTAINER$"
+          if ! docker ps --filter "name=$RUNTIME_CONTAINER" --filter "status=running" --format "{{.Names}}" | grep -q "^$RUNTIME_CONTAINER$"; then
+            docker ps -a --filter "name=$RUNTIME_CONTAINER"
+            docker logs "$RUNTIME_CONTAINER" || true
+            exit 1
+          fi
 
       - name: Validate runtime can see seeded directories
         run: |
