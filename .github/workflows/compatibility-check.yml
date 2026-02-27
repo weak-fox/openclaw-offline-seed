@@ -1,0 +1,110 @@
+name: Compatibility Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      openclaw_image:
+        description: Optional override for upstream OpenClaw image (for example ghcr.io/openclaw/openclaw:2026.2.25)
+        required: false
+        type: string
+  schedule:
+    - cron: "0 3 * * 1"
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - build.sh
+      - scripts/**
+      - config/**
+      - plugins/**
+      - skills/**
+      - .github/workflows/compatibility-check.yml
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: compatibility-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    env:
+      OPENCLAW_HOME_DIR: /home/node/.openclaw
+      SEED_IMAGE: local/openclaw-offline-seed:compat
+      SHARED_VOLUME: openclaw-shared-compat
+      RUNTIME_CONTAINER: openclaw-runtime-compat
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve OpenClaw image
+        id: resolve_image
+        run: |
+          set -eu
+          INPUT_IMAGE="$(jq -r '.inputs.openclaw_image // ""' "$GITHUB_EVENT_PATH")"
+          if [ -n "$INPUT_IMAGE" ]; then
+            IMAGE="$INPUT_IMAGE"
+          else
+            IMAGE="$(awk -F= '/^ARG OPENCLAW_IMAGE=/{print $2; exit}' Dockerfile)"
+          fi
+          if [ -z "$IMAGE" ]; then
+            echo "Failed to resolve OPENCLAW_IMAGE" >&2
+            exit 1
+          fi
+          echo "openclaw_image=$IMAGE" >>"$GITHUB_OUTPUT"
+          echo "Using OPENCLAW_IMAGE=$IMAGE"
+
+      - name: Build seed image
+        run: |
+          IMAGE="$SEED_IMAGE" \
+          OPENCLAW_IMAGE="${{ steps.resolve_image.outputs.openclaw_image }}" \
+          ./build.sh
+
+      - name: Validate seed writes shared volume
+        run: |
+          set -eux
+          docker volume rm -f "$SHARED_VOLUME" >/dev/null 2>&1 || true
+          docker volume create "$SHARED_VOLUME" >/dev/null
+
+          docker run --rm \
+            -e OPENCLAW_HOME_DIR="$OPENCLAW_HOME_DIR" \
+            -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
+            "$SEED_IMAGE"
+
+          docker run --rm \
+            -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
+            alpine:3.20 \
+            sh -lc "test -d '$OPENCLAW_HOME_DIR/extensions' && test -d '$OPENCLAW_HOME_DIR/workspace/skills'"
+
+      - name: Validate runtime starts with shared volume
+        run: |
+          set -eux
+          docker rm -f "$RUNTIME_CONTAINER" >/dev/null 2>&1 || true
+          docker run -d --name "$RUNTIME_CONTAINER" \
+            -e OPENCLAW_HOME_DIR="$OPENCLAW_HOME_DIR" \
+            -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
+            "${{ steps.resolve_image.outputs.openclaw_image }}" \
+            sh -lc "node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured"
+
+          sleep 25
+          docker ps --filter "name=$RUNTIME_CONTAINER" --filter "status=running" --format "{{.Names}}" | grep -q "^$RUNTIME_CONTAINER$"
+
+      - name: Validate runtime can see seeded directories
+        run: |
+          set -eux
+          docker exec "$RUNTIME_CONTAINER" sh -lc "ls -la '$OPENCLAW_HOME_DIR/extensions'"
+          docker exec "$RUNTIME_CONTAINER" sh -lc "ls -la '$OPENCLAW_HOME_DIR/workspace/skills'"
+
+      - name: Dump runtime logs on failure
+        if: failure()
+        run: docker logs "$RUNTIME_CONTAINER" || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f "$RUNTIME_CONTAINER" >/dev/null 2>&1 || true
+          docker volume rm -f "$SHARED_VOLUME" >/dev/null 2>&1 || true
