@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - build.sh
+      - scripts/**
+      - config/**
+      - plugins/**
+      - skills/**
+      - .github/workflows/**
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - build.sh
+      - scripts/**
+      - config/**
+      - plugins/**
+      - skills/**
+      - .github/workflows/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shell-and-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Shell syntax check
+        run: sh -n build.sh scripts/*.sh
+
+      - name: Validate JSON files
+        run: |
+          jq -e . config/seed-config.json >/dev/null
+          jq -e . config/seed-config.schema.json >/dev/null
+
+      - name: Validate seed config against schema
+        run: npx --yes ajv-cli validate -s config/seed-config.schema.json -d config/seed-config.json --strict=false
+
+  build-smoke:
+    runs-on: ubuntu-latest
+    needs:
+      - shell-and-config
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image smoke test
+        run: |
+          IMAGE=local/openclaw-offline-seed:ci \
+          OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.2.24 \
+          CONFIG_PATH=config/seed-config.json \
+          ./build.sh
+
+      - name: Assert built image exists
+        run: docker image inspect local/openclaw-offline-seed:ci >/dev/null

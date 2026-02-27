@@ -10,6 +10,7 @@
   <strong>Config-driven offline plugin and skill seeding for OpenClaw runtimes.</strong>
 </p>
 
+[![CI](https://github.com/weak-fox/openclaw-offline-seed/actions/workflows/ci.yml/badge.svg)](https://github.com/weak-fox/openclaw-offline-seed/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/weak-fox/openclaw-offline-seed)](https://github.com/weak-fox/openclaw-offline-seed/releases)
 [![License](https://img.shields.io/github/license/weak-fox/openclaw-offline-seed)](https://github.com/weak-fox/openclaw-offline-seed/blob/main/LICENSE)
 
@@ -86,6 +87,21 @@ CONFIG_PATH=config/seed-config.json \
 
 docker push REGISTRY/openclaw-offline-seed:v1
 ```
+
+## 🚀 Release and publish image
+
+1. Ensure `main` is green in CI.
+2. Create and push a tag, for example:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+3. GitHub Actions workflow `Release Image` builds and pushes to:
+   - `ghcr.io/weak-fox/openclaw-offline-seed:v1.0.0`
+   - `ghcr.io/weak-fox/openclaw-offline-seed:v1.0`
+4. Publish a GitHub Release for that tag in `Releases`.
 
 ## ⛵ Integration: Helm charts (generic)
 
