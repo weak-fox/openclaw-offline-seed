@@ -50,6 +50,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.2.24
-            SEED_CONFIG=config/seed-config.json

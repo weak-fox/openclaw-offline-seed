@@ -59,8 +59,6 @@ jobs:
       - name: Build image smoke test
         run: |
           IMAGE=local/openclaw-offline-seed:ci \
-          OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.2.24 \
-          CONFIG_PATH=config/seed-config.json \
           ./build.sh
 
       - name: Assert built image exists

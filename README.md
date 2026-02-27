@@ -88,21 +88,6 @@ CONFIG_PATH=config/seed-config.json \
 docker push REGISTRY/openclaw-offline-seed:v1
 ```
 
-## 🚀 Release and publish image
-
-1. Ensure `main` is green in CI.
-2. Create and push a tag, for example:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-3. GitHub Actions workflow `Release Image` builds and pushes to:
-   - `ghcr.io/weak-fox/openclaw-offline-seed:v1.0.0`
-   - `ghcr.io/weak-fox/openclaw-offline-seed:v1.0`
-4. Publish a GitHub Release for that tag in `Releases`.
-
 ## ⛵ Integration: Helm charts (generic)
 
 If your chart supports overriding init containers, inject one seed init container that:
