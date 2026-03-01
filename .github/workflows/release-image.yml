@@ -85,14 +85,14 @@ jobs:
           image_ref="$(printf '%s\n' "$IMAGE_TAGS" | head -n1)"
           title="Seed Image ${TAG_NAME}"
           notes=$(cat <<NOTES
-Offline seed image for OpenClaw.
+          Offline seed image for OpenClaw.
 
-Container image:
-- `${image_ref}`
+          Container image:
+          - `${image_ref}`
 
-Built from base image:
-- `${OPENCLAW_IMAGE}`
-NOTES
+          Built from base image:
+          - `${OPENCLAW_IMAGE}`
+          NOTES
           )
 
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
