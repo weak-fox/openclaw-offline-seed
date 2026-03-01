@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -72,3 +72,31 @@ jobs:
             SEED_CONFIG=config/seed-config.json
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Create or update GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+          OPENCLAW_IMAGE: ${{ steps.base.outputs.openclaw_image }}
+        run: |
+          set -euo pipefail
+          image_ref="$(printf '%s\n' "$IMAGE_TAGS" | head -n1)"
+          title="Seed Image ${TAG_NAME}"
+          notes=$(cat <<NOTES
+Offline seed image for OpenClaw.
+
+Container image:
+- `${image_ref}`
+
+Built from base image:
+- `${OPENCLAW_IMAGE}`
+NOTES
+          )
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release edit "$TAG_NAME" --title "$title" --notes "$notes"
+          else
+            gh release create "$TAG_NAME" --title "$title" --notes "$notes"
+          fi
