@@ -1,0 +1,161 @@
+name: Sync OpenClaw Seed Image
+
+on:
+  schedule:
+    # OpenClaw releases are mostly around 02-04 UTC, with a secondary window around 16-19 UTC.
+    # Run twice daily and always before helm sync.
+    - cron: "30 5,20 * * *"
+  workflow_dispatch:
+    inputs:
+      openclaw_version:
+        description: "Target OpenClaw version, e.g. 2026.2.26 (optional)"
+        required: false
+        type: string
+      seed_semver:
+        description: "Seed semver prefix in tag v<seed_semver>-oc-<openclaw_version>"
+        required: false
+        type: string
+        default: "1.0.0"
+      trigger_helm_sync:
+        description: "Trigger weak-fox/openclaw-helm sync workflow after seed is ready"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: sync-openclaw-seed
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve OpenClaw target version
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.openclaw_version }}
+        run: |
+          set -euo pipefail
+          target="${INPUT_VERSION:-}"
+          if [ -z "$target" ]; then
+            target="$(gh api repos/openclaw/openclaw/releases/latest --jq '.tag_name' | sed 's/^v//')"
+          fi
+          if ! [[ "$target" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid target version: $target"
+            exit 1
+          fi
+          echo "version=$target" >> "$GITHUB_OUTPUT"
+          echo "Target OpenClaw version: $target"
+
+      - name: Resolve seed image target
+        id: seed
+        env:
+          TARGET_VERSION: ${{ steps.target.outputs.version }}
+          INPUT_SEMVER: ${{ inputs.seed_semver }}
+        run: |
+          set -euo pipefail
+          seed_semver="${INPUT_SEMVER:-1.0.0}"
+          seed_repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          seed_tag="v${seed_semver}-oc-${TARGET_VERSION}"
+          seed_image="${seed_repo}:${seed_tag}"
+
+          echo "semver=$seed_semver" >> "$GITHUB_OUTPUT"
+          echo "repo=$seed_repo" >> "$GITHUB_OUTPUT"
+          echo "tag=$seed_tag" >> "$GITHUB_OUTPUT"
+          echo "image=$seed_image" >> "$GITHUB_OUTPUT"
+
+          echo "Seed image target: $seed_image"
+
+      - name: Check whether seed image exists
+        id: exists
+        env:
+          SEED_IMAGE: ${{ steps.seed.outputs.image }}
+        run: |
+          set -euo pipefail
+          if docker manifest inspect "$SEED_IMAGE" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Seed image already exists: $SEED_IMAGE"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Seed image does not exist yet: $SEED_IMAGE"
+          fi
+
+      - name: Log in to GHCR
+        if: steps.exists.outputs.exists != 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build seed image
+        if: steps.exists.outputs.exists != 'true'
+        env:
+          IMAGE: ${{ steps.seed.outputs.image }}
+          OPENCLAW_IMAGE: ghcr.io/openclaw/openclaw:${{ steps.target.outputs.version }}
+          CONFIG_PATH: config/seed-config.json
+        run: |
+          set -euo pipefail
+          ./build.sh
+
+      - name: Push seed image
+        if: steps.exists.outputs.exists != 'true'
+        env:
+          SEED_IMAGE: ${{ steps.seed.outputs.image }}
+        run: |
+          set -euo pipefail
+          docker push "$SEED_IMAGE"
+
+      - name: Verify seed image exists after build
+        env:
+          SEED_IMAGE: ${{ steps.seed.outputs.image }}
+        run: |
+          set -euo pipefail
+          docker manifest inspect "$SEED_IMAGE" >/dev/null
+          echo "Verified seed image: $SEED_IMAGE"
+
+      - name: Trigger helm sync workflow
+        env:
+          INPUT_TRIGGER_HELM_SYNC: ${{ inputs.trigger_helm_sync }}
+          HELM_REPO_DISPATCH_TOKEN: ${{ secrets.HELM_REPO_DISPATCH_TOKEN }}
+          TARGET_VERSION: ${{ steps.target.outputs.version }}
+          SEED_SEMVER: ${{ steps.seed.outputs.semver }}
+          SEED_REPO: ${{ steps.seed.outputs.repo }}
+        run: |
+          set -euo pipefail
+          trigger="${INPUT_TRIGGER_HELM_SYNC:-true}"
+          if [ "$trigger" != "true" ]; then
+            echo "trigger_helm_sync=false, skip dispatch."
+            exit 0
+          fi
+
+          if [ -z "${HELM_REPO_DISPATCH_TOKEN:-}" ]; then
+            echo "Missing secret HELM_REPO_DISPATCH_TOKEN for cross-repo workflow dispatch."
+            exit 1
+          fi
+
+          payload="$(jq -n \
+            --arg ref "main" \
+            --arg openclaw_version "$TARGET_VERSION" \
+            --arg chart_bump "patch" \
+            --arg dry_run "false" \
+            --arg seed_semver "$SEED_SEMVER" \
+            --arg seed_image_repo "$SEED_REPO" \
+            '{ref: $ref, inputs: {openclaw_version: $openclaw_version, chart_bump: $chart_bump, dry_run: $dry_run, seed_semver: $seed_semver, seed_image_repo: $seed_image_repo}}'
+          )"
+
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${HELM_REPO_DISPATCH_TOKEN}" \
+            https://api.github.com/repos/weak-fox/openclaw-helm/actions/workflows/sync-openclaw-release.yaml/dispatches \
+            -d "$payload"
+
+          echo "Dispatched weak-fox/openclaw-helm sync for OpenClaw ${TARGET_VERSION}."
