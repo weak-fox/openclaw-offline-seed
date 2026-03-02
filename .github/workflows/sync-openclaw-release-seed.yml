@@ -23,7 +23,7 @@ on:
         default: true
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 concurrency:
@@ -54,6 +54,30 @@ jobs:
           fi
           echo "version=$target" >> "$GITHUB_OUTPUT"
           echo "Target OpenClaw version: $target"
+
+      - name: Update default base image references
+        id: defaults
+        env:
+          TARGET_VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          set -euo pipefail
+          export TARGET_VERSION
+
+          perl -i -pe '
+            s/^ARG OPENCLAW_IMAGE=ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+$/ARG OPENCLAW_IMAGE=ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}/
+          ' Dockerfile
+
+          perl -i -pe '
+            s/^OPENCLAW_IMAGE="\$\{OPENCLAW_IMAGE:-ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+\}"$/OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}}"/
+          ' build.sh
+
+          if git diff --quiet -- Dockerfile build.sh; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Default base image already up to date."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Updated default base image to ghcr.io/openclaw/openclaw:${TARGET_VERSION}"
+          fi
 
       - name: Resolve seed image target
         id: seed
@@ -121,6 +145,24 @@ jobs:
           set -euo pipefail
           docker manifest inspect "$SEED_IMAGE" >/dev/null
           echo "Verified seed image: $SEED_IMAGE"
+
+      - name: Commit default base image updates
+        if: steps.defaults.outputs.changed == 'true'
+        env:
+          TARGET_VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Dockerfile build.sh
+
+          if git diff --staged --quiet; then
+            echo "No staged default-base-image changes."
+            exit 0
+          fi
+
+          git commit -m "chore(sync): bump default OpenClaw base image to ${TARGET_VERSION}"
+          git push
 
       - name: Trigger helm sync workflow
         env:
