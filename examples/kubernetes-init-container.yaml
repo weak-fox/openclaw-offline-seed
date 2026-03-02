@@ -20,7 +20,7 @@ spec:
               mountPath: /home/node/.openclaw
       containers:
         - name: openclaw
-          image: REGISTRY/openclaw:2026.2.24
+          image: REGISTRY/openclaw:2026.3.1
           # Verification/testing shortcut only.
           # For production, configure gateway.controlUi.allowedOrigins and follow:
           # - https://docs.openclaw.ai/web/control-ui

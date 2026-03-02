@@ -81,7 +81,7 @@ Those directories are copied directly into the seed payload.
 cd openclaw-offline-seed
 
 IMAGE=REGISTRY/openclaw-offline-seed:v1 \
-OPENCLAW_IMAGE=REGISTRY/openclaw:2026.2.24 \
+OPENCLAW_IMAGE=REGISTRY/openclaw:2026.3.1 \
 CONFIG_PATH=config/seed-config.json \
 ./build.sh
 
@@ -133,7 +133,7 @@ docker run --rm \
 docker run -d --name openclaw \
   -p 18789:18789 \
   -v openclaw-data:"$OPENCLAW_HOME_DIR" \
-  REGISTRY/openclaw:2026.2.24 \
+  REGISTRY/openclaw:2026.3.1 \
   sh -lc 'node openclaw.mjs config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true && node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured'
 ```
 
