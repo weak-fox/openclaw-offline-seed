@@ -88,10 +88,10 @@ jobs:
           Offline seed image for OpenClaw.
 
           Container image:
-          - `${image_ref}`
+          - \`${image_ref}\`
 
           Built from base image:
-          - `${OPENCLAW_IMAGE}`
+          - \`${OPENCLAW_IMAGE}\`
           NOTES
           )
 
