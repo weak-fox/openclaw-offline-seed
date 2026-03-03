@@ -68,7 +68,7 @@ jobs:
           ' Dockerfile
 
           perl -i -pe '
-            s/^OPENCLAW_IMAGE="\$\{OPENCLAW_IMAGE:-ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+\}"$/OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}}"/
+            s/^OPENCLAW_IMAGE="\$\{OPENCLAW_IMAGE:-ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+\}"$/OPENCLAW_IMAGE="\${OPENCLAW_IMAGE:-ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}}"/
           ' build.sh
 
           if git diff --quiet -- Dockerfile build.sh; then
