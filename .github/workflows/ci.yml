@@ -3,6 +3,7 @@ name: CI
 on:
   pull_request:
     paths:
+      - VERSION
       - Dockerfile
       - build.sh
       - scripts/**
@@ -14,6 +15,7 @@ on:
     branches:
       - main
     paths:
+      - VERSION
       - Dockerfile
       - build.sh
       - scripts/**
@@ -39,6 +41,9 @@ jobs:
 
       - name: Shell syntax check
         run: sh -n build.sh scripts/*.sh
+
+      - name: Test release version resolver
+        run: sh scripts/test-resolve-seed-release.sh
 
       - name: Validate JSON files
         run: |

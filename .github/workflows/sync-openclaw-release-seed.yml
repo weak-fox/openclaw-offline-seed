@@ -12,10 +12,9 @@ on:
         required: false
         type: string
       seed_semver:
-        description: "Seed semver prefix in tag v<seed_semver>-oc-<openclaw_version>"
+        description: "Optional seed semver override in tag v<seed_semver>-oc-<openclaw_version>"
         required: false
         type: string
-        default: "1.0.0"
       trigger_helm_sync:
         description: "Trigger weak-fox/openclaw-helm sync workflow after seed is ready"
         required: false
@@ -36,6 +35,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch tags
+        run: git fetch --force --tags origin
 
       - name: Resolve OpenClaw target version
         id: target
@@ -79,21 +83,28 @@ jobs:
             echo "Updated default base image to ghcr.io/openclaw/openclaw:${TARGET_VERSION}"
           fi
 
-      - name: Resolve seed image target
-        id: seed
+      - name: Resolve seed release version
+        id: release_version
         env:
           TARGET_VERSION: ${{ steps.target.outputs.version }}
           INPUT_SEMVER: ${{ inputs.seed_semver }}
         run: |
           set -euo pipefail
-          seed_semver="${INPUT_SEMVER:-1.0.0}"
-          seed_repo="ghcr.io/${GITHUB_REPOSITORY,,}"
-          seed_tag="v${seed_semver}-oc-${TARGET_VERSION}"
-          seed_image="${seed_repo}:${seed_tag}"
+          sh scripts/resolve-seed-release.sh "$TARGET_VERSION" "${INPUT_SEMVER:-}"
 
-          echo "semver=$seed_semver" >> "$GITHUB_OUTPUT"
+      - name: Resolve seed image target
+        id: seed
+        env:
+          SEED_SEMVER: ${{ steps.release_version.outputs.semver }}
+          SEED_TAG: ${{ steps.release_version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          seed_repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          seed_image="${seed_repo}:${SEED_TAG}"
+
+          echo "semver=$SEED_SEMVER" >> "$GITHUB_OUTPUT"
           echo "repo=$seed_repo" >> "$GITHUB_OUTPUT"
-          echo "tag=$seed_tag" >> "$GITHUB_OUTPUT"
+          echo "tag=$SEED_TAG" >> "$GITHUB_OUTPUT"
           echo "image=$seed_image" >> "$GITHUB_OUTPUT"
 
           echo "Seed image target: $seed_image"
@@ -146,23 +157,68 @@ jobs:
           docker manifest inspect "$SEED_IMAGE" >/dev/null
           echo "Verified seed image: $SEED_IMAGE"
 
-      - name: Commit default base image updates
-        if: steps.defaults.outputs.changed == 'true'
+      - name: Commit release metadata updates
+        if: steps.defaults.outputs.changed == 'true' || steps.release_version.outputs.version_changed == 'true'
         env:
-          TARGET_VERSION: ${{ steps.target.outputs.version }}
+          BRANCH_NAME: ${{ github.ref_name }}
+          SEED_TAG: ${{ steps.seed.outputs.tag }}
+        run: |
+          set -euo pipefail
+          branch_name="${BRANCH_NAME:-main}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Dockerfile build.sh VERSION
+
+          if git diff --staged --quiet; then
+            echo "No staged release metadata changes."
+            exit 0
+          fi
+
+          git commit -m "chore(release): prepare ${SEED_TAG}"
+          git push origin "HEAD:${branch_name}"
+
+      - name: Create and push seed release tag
+        if: steps.release_version.outputs.target_release_exists != 'true'
+        env:
+          SEED_TAG: ${{ steps.seed.outputs.tag }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Dockerfile build.sh
 
-          if git diff --staged --quiet; then
-            echo "No staged default-base-image changes."
-            exit 0
+          if git rev-parse -q --verify "refs/tags/${SEED_TAG}" >/dev/null 2>&1; then
+            echo "Seed tag already exists locally: ${SEED_TAG}"
+          else
+            git tag -a "$SEED_TAG" -m "Release ${SEED_TAG}"
           fi
 
-          git commit -m "chore(sync): bump default OpenClaw base image to ${TARGET_VERSION}"
-          git push
+          git push origin "$SEED_TAG"
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.seed.outputs.tag }}
+          IMAGE_REF: ${{ steps.seed.outputs.image }}
+          OPENCLAW_IMAGE: ghcr.io/openclaw/openclaw:${{ steps.target.outputs.version }}
+        run: |
+          set -euo pipefail
+          title="Seed Image ${TAG_NAME}"
+          notes=$(cat <<NOTES
+          Offline seed image for OpenClaw.
+
+          Container image:
+          - \`${IMAGE_REF}\`
+
+          Built from base image:
+          - \`${OPENCLAW_IMAGE}\`
+          NOTES
+          )
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release edit "$TAG_NAME" --title "$title" --notes "$notes"
+          else
+            gh release create "$TAG_NAME" --title "$title" --notes "$notes"
+          fi
 
       - name: Trigger helm sync workflow
         env:
