@@ -2,7 +2,7 @@
 set -eu
 
 IMAGE="${IMAGE:-REGISTRY/openclaw-offline-seed:v1}"
-OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.3.8}"
+OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.3.11}"
 CONFIG_PATH="${CONFIG_PATH:-config/seed-config.json}"
 
 if [ ! -f "$CONFIG_PATH" ]; then
