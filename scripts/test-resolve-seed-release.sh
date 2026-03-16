@@ -54,7 +54,8 @@ repo_b=$(make_repo 1.0.0)
 repo_c=$(make_repo 1.0.0)
 repo_d=$(make_repo 1.0.1)
 repo_e=$(make_repo 1.0.2)
-trap 'cleanup "$repo_a" "$repo_b" "$repo_c" "$repo_d" "$repo_e"' EXIT INT TERM
+repo_f=$(make_repo 1.0.2)
+trap 'cleanup "$repo_a" "$repo_b" "$repo_c" "$repo_d" "$repo_e" "$repo_f"' EXIT INT TERM
 
 output_a=$(cd "$repo_a" && sh "$RESOLVER" 2026.3.1)
 assert_eq "1.0.0" "$(get_value semver "$output_a")" "uses VERSION as-is for first release"
@@ -96,6 +97,11 @@ output_e=$(cd "$repo_e" && sh "$RESOLVER" 2026.3.1)
 assert_eq "1.0.0" "$(get_value semver "$output_e")" "reuses historical semver for an existing older release"
 assert_eq "false" "$(get_value version_changed "$output_e")" "does not downgrade VERSION when re-running an older release"
 assert_eq "1.0.2" "$(tr -d '[:space:]' < "$repo_e/VERSION")" "keeps VERSION at the latest project semver during old release reruns"
+
+output_f=$(cd "$repo_f" && sh "$RESOLVER" 2026.3.13-1)
+assert_eq "1.0.2" "$(get_value semver "$output_f")" "accepts OpenClaw versions with revision suffixes"
+assert_eq "v1.0.2-oc-2026.3.13-1" "$(get_value tag "$output_f")" "preserves revision suffixes in seed tags"
+assert_eq "false" "$(get_value version_changed "$output_f")" "does not rewrite VERSION when first revision-suffixed release uses current semver"
 
 if (
   cd "$repo_d"

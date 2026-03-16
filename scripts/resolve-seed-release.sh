@@ -21,7 +21,7 @@ validate_semver() {
 validate_openclaw_version() {
   value=$1
 
-  if ! printf '%s\n' "$value" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+  if ! printf '%s\n' "$value" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$'; then
     fail "Invalid OpenClaw version: $value"
   fi
 }

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       openclaw_version:
-        description: "Target OpenClaw version, e.g. 2026.3.1 (optional)"
+        description: "Target OpenClaw version, e.g. 2026.3.13 or 2026.3.13-1 (optional)"
         required: false
         type: string
       seed_semver:
@@ -46,18 +46,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           INPUT_VERSION: ${{ inputs.openclaw_version }}
-        run: |
-          set -euo pipefail
-          target="${INPUT_VERSION:-}"
-          if [ -z "$target" ]; then
-            target="$(gh api repos/openclaw/openclaw/releases/latest --jq '.tag_name' | sed 's/^v//')"
-          fi
-          if ! [[ "$target" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid target version: $target"
-            exit 1
-          fi
-          echo "version=$target" >> "$GITHUB_OUTPUT"
-          echo "Target OpenClaw version: $target"
+        run: sh scripts/resolve-openclaw-version.sh "${INPUT_VERSION:-}"
 
       - name: Update default base image references
         id: defaults
@@ -68,11 +57,11 @@ jobs:
           export TARGET_VERSION
 
           perl -i -pe '
-            s/^ARG OPENCLAW_IMAGE=ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+$/ARG OPENCLAW_IMAGE=ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}/
+            s/^ARG OPENCLAW_IMAGE=ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?$/ARG OPENCLAW_IMAGE=ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}/
           ' Dockerfile
 
           perl -i -pe '
-            s/^OPENCLAW_IMAGE="\$\{OPENCLAW_IMAGE:-ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+\}"$/OPENCLAW_IMAGE="\${OPENCLAW_IMAGE:-ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}}"/
+            s/^OPENCLAW_IMAGE="\$\{OPENCLAW_IMAGE:-ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?\}"$/OPENCLAW_IMAGE="\${OPENCLAW_IMAGE:-ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}}"/
           ' build.sh
 
           if git diff --quiet -- Dockerfile build.sh; then
