@@ -64,6 +64,9 @@ jobs:
           OPENCLAW_IMAGE="${{ steps.resolve_image.outputs.openclaw_image }}" \
           ./build.sh
 
+      - name: Validate seed image payload permissions
+        run: sh scripts/test-seed-image-permissions.sh "$SEED_IMAGE"
+
       - name: Validate seed writes shared volume
         run: |
           set -eux

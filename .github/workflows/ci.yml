@@ -69,5 +69,8 @@ jobs:
           IMAGE=local/openclaw-offline-seed:ci \
           ./build.sh
 
+      - name: Validate seed image payload permissions
+        run: sh scripts/test-seed-image-permissions.sh local/openclaw-offline-seed:ci
+
       - name: Assert built image exists
         run: docker image inspect local/openclaw-offline-seed:ci >/dev/null

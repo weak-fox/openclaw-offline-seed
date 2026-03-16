@@ -21,7 +21,7 @@ FROM alpine:3.20
 RUN addgroup -g 1000 -S node \
     && adduser -u 1000 -S node -G node
 
-COPY --from=builder /seed /seed
+COPY --from=builder --chown=1000:1000 /seed /seed
 COPY --chmod=755 scripts/seed-init.sh /usr/local/bin/seed-init.sh
 
 USER 1000:1000
