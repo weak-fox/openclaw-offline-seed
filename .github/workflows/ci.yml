@@ -3,9 +3,12 @@ name: CI
 on:
   pull_request:
     paths:
+      - README.md
+      - CONTRIBUTING.md
       - VERSION
       - Dockerfile
       - build.sh
+      - examples/**
       - scripts/**
       - config/**
       - plugins/**
@@ -15,9 +18,12 @@ on:
     branches:
       - main
     paths:
+      - README.md
+      - CONTRIBUTING.md
       - VERSION
       - Dockerfile
       - build.sh
+      - examples/**
       - scripts/**
       - config/**
       - plugins/**
@@ -47,6 +53,9 @@ jobs:
 
       - name: Test OpenClaw version resolver
         run: sh scripts/test-resolve-openclaw-version.sh
+
+      - name: Test OpenClaw version docs
+        run: sh scripts/test-openclaw-version-docs.sh
 
       - name: Validate JSON files
         run: |

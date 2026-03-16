@@ -64,12 +64,32 @@ jobs:
             s/^OPENCLAW_IMAGE="\$\{OPENCLAW_IMAGE:-ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?\}"$/OPENCLAW_IMAGE="\${OPENCLAW_IMAGE:-ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION}}"/
           ' build.sh
 
-          if git diff --quiet -- Dockerfile build.sh; then
+          perl -i -pe '
+            s/^OPENCLAW_IMAGE=REGISTRY\/openclaw:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)? \\\$/OPENCLAW_IMAGE=REGISTRY\/openclaw:$ENV{TARGET_VERSION} \\/
+          ' README.md
+
+          perl -i -pe '
+            s/^  REGISTRY\/openclaw:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)? \\\$/  REGISTRY\/openclaw:$ENV{TARGET_VERSION} \\/
+          ' README.md
+
+          perl -i -pe '
+            s/^OPENCLAW_IMAGE=ghcr\.io\/openclaw\/openclaw:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)? \\\$/OPENCLAW_IMAGE=ghcr.io\/openclaw\/openclaw:$ENV{TARGET_VERSION} \\/
+          ' CONTRIBUTING.md
+
+          perl -i -pe '
+            s/^    image: REGISTRY\/openclaw:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?$/    image: REGISTRY\/openclaw:$ENV{TARGET_VERSION}/
+          ' examples/docker-compose.yaml
+
+          perl -i -pe '
+            s/^          image: REGISTRY\/openclaw:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?$/          image: REGISTRY\/openclaw:$ENV{TARGET_VERSION}/
+          ' examples/kubernetes-init-container.yaml
+
+          if git diff --quiet -- Dockerfile build.sh README.md CONTRIBUTING.md examples/docker-compose.yaml examples/kubernetes-init-container.yaml; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Default base image already up to date."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Updated default base image to ghcr.io/openclaw/openclaw:${TARGET_VERSION}"
+            echo "Updated default OpenClaw version references to ${TARGET_VERSION}"
           fi
 
       - name: Resolve seed release version
@@ -156,7 +176,7 @@ jobs:
           branch_name="${BRANCH_NAME:-main}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Dockerfile build.sh VERSION
+          git add Dockerfile build.sh README.md CONTRIBUTING.md examples/docker-compose.yaml examples/kubernetes-init-container.yaml VERSION
 
           if git diff --staged --quiet; then
             echo "No staged release metadata changes."
