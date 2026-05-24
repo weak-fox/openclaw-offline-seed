@@ -4,6 +4,7 @@ set -eu
 OPENCLAW_HOME_DIR="${OPENCLAW_HOME_DIR:-/home/node/.openclaw}"
 SKILLS_SRC="/seed/skills"
 EXT_SRC="/seed/extensions"
+PLUGIN_SKILLS_SRC="/seed/plugin-skills"
 
 log() {
   printf '%s %s\n' "[$(date -u +%Y-%m-%dT%H:%M:%SZ)]" "[offline-seed-init] $*"
@@ -11,6 +12,7 @@ log() {
 
 mkdir -p "$OPENCLAW_HOME_DIR/workspace/skills"
 mkdir -p "$OPENCLAW_HOME_DIR/extensions"
+mkdir -p "$OPENCLAW_HOME_DIR/plugin-skills"
 
 if [ -d "$SKILLS_SRC" ] && [ "$(ls -A "$SKILLS_SRC" 2>/dev/null)" ]; then
   log "Copying skills into $OPENCLAW_HOME_DIR/workspace/skills"
@@ -24,6 +26,16 @@ if [ -d "$EXT_SRC" ] && [ "$(ls -A "$EXT_SRC" 2>/dev/null)" ]; then
     name="$(basename "$ext")"
     rm -rf "$OPENCLAW_HOME_DIR/extensions/$name"
     cp -r "$ext" "$OPENCLAW_HOME_DIR/extensions/$name"
+  done
+fi
+
+if [ -d "$PLUGIN_SKILLS_SRC" ] && [ "$(ls -A "$PLUGIN_SKILLS_SRC" 2>/dev/null)" ]; then
+  log "Syncing plugin skills into $OPENCLAW_HOME_DIR/plugin-skills"
+  for skill in "$PLUGIN_SKILLS_SRC"/*; do
+    [ -d "$skill" ] || continue
+    name="$(basename "$skill")"
+    rm -rf "$OPENCLAW_HOME_DIR/plugin-skills/$name"
+    cp -r "$skill" "$OPENCLAW_HOME_DIR/plugin-skills/$name"
   done
 fi
 

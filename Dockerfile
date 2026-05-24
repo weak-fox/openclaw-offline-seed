@@ -12,6 +12,7 @@ ENV OPENCLAW_HOME=/tmp/openclaw-home
 COPY --chmod=755 scripts/build-seed.sh /usr/local/bin/build-seed.sh
 COPY skills/ /seed-local/skills/
 COPY plugins/ /seed-local/plugins/
+COPY plugin-skills/ /seed-local/plugin-skills/
 COPY ${SEED_CONFIG} /seed-config/seed-config.json
 
 RUN /usr/local/bin/build-seed.sh /seed-config/seed-config.json

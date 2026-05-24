@@ -30,6 +30,7 @@ check_dir() {
 }
 
 check_dir /seed/extensions
+check_dir /seed/plugin-skills
 check_dir /seed/skills
 ' || fail "seed image contains unreadable payload directories for runtime user"
 

@@ -17,6 +17,7 @@ node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));' "$CON
 
 mkdir -p /seed/skills
 mkdir -p /seed/extensions
+mkdir -p /seed/plugin-skills
 mkdir -p /tmp/openclaw-home/.openclaw/workspace/skills
 
 log "Using config: $CONFIG_FILE"
@@ -79,18 +80,25 @@ install_skills_from_config() {
 install_plugins_from_config
 install_skills_from_config
 
-# Export installed extensions and skills from build-time OPENCLAW_HOME.
+# Export installed extensions, skills, and plugin-bundled helper skills from build-time OPENCLAW_HOME.
 if [ -d /tmp/openclaw-home/.openclaw/extensions ]; then
   cp -a /tmp/openclaw-home/.openclaw/extensions/. /seed/extensions/
 fi
 if [ -d /tmp/openclaw-home/.openclaw/workspace/skills ]; then
   cp -a /tmp/openclaw-home/.openclaw/workspace/skills/. /seed/skills/
 fi
+if [ -d /tmp/openclaw-home/.openclaw/plugin-skills ]; then
+  cp -a /tmp/openclaw-home/.openclaw/plugin-skills/. /seed/plugin-skills/
+fi
 
 # Merge vendored local content (useful for fully offline builds).
 if [ -d /seed-local/plugins ] && [ "$(ls -A /seed-local/plugins 2>/dev/null)" ]; then
   log "Copying vendored local plugins from /seed-local/plugins"
   cp -a /seed-local/plugins/. /seed/extensions/
+fi
+if [ -d /seed-local/plugin-skills ] && [ "$(ls -A /seed-local/plugin-skills 2>/dev/null)" ]; then
+  log "Copying vendored local plugin skills from /seed-local/plugin-skills"
+  cp -a /seed-local/plugin-skills/. /seed/plugin-skills/
 fi
 if [ -d /seed-local/skills ] && [ "$(ls -A /seed-local/skills 2>/dev/null)" ]; then
   log "Copying vendored local skills from /seed-local/skills"

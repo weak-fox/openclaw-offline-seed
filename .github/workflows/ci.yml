@@ -12,6 +12,7 @@ on:
       - scripts/**
       - config/**
       - plugins/**
+      - plugin-skills/**
       - skills/**
       - .github/workflows/**
   push:
@@ -27,6 +28,7 @@ on:
       - scripts/**
       - config/**
       - plugins/**
+      - plugin-skills/**
       - skills/**
       - .github/workflows/**
   workflow_dispatch:
@@ -61,9 +63,12 @@ jobs:
         run: |
           jq -e . config/seed-config.json >/dev/null
           jq -e . config/seed-config.schema.json >/dev/null
+          jq -e . examples/tweetclaw-seed-config.json >/dev/null
 
       - name: Validate seed config against schema
-        run: npx --yes ajv-cli@5 validate -s config/seed-config.schema.json -d config/seed-config.json --strict=false --spec=draft2020
+        run: |
+          npx -y ajv-cli@5 validate -s config/seed-config.schema.json -d config/seed-config.json --strict=false --spec=draft2020
+          npx -y ajv-cli@5 validate -s config/seed-config.schema.json -d examples/tweetclaw-seed-config.json --strict=false --spec=draft2020
 
   build-smoke:
     runs-on: ubuntu-latest
