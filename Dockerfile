@@ -1,4 +1,4 @@
-ARG OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.5.26
+ARG OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.5.27
 ARG SEED_CONFIG=config/seed-config.json
 
 FROM ${OPENCLAW_IMAGE} AS builder
