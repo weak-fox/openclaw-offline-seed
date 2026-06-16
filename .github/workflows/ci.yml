@@ -12,7 +12,7 @@ on:
       - scripts/**
       - config/**
       - plugins/**
-      - plugin-skills/**
+      - npm/**
       - skills/**
       - .github/workflows/**
   push:
@@ -28,7 +28,7 @@ on:
       - scripts/**
       - config/**
       - plugins/**
-      - plugin-skills/**
+      - npm/**
       - skills/**
       - .github/workflows/**
   workflow_dispatch:

@@ -29,7 +29,7 @@ This project is not tied to one chart. You can integrate it with:
 ## 📦 What gets seeded
 
 - `extensions/*` (plugins)
-- `plugin-skills/*` (helper skills installed by plugins)
+- `npm/projects/*` (installed npm plugin projects)
 - `workspace/skills/*` (skills)
 
 ## 🏠 Runtime home path
@@ -89,20 +89,20 @@ CONFIG_PATH=examples/tweetclaw-seed-config.json \
 ./build.sh
 ```
 
-The seed image only packages the plugin runtime and its bundled helper skill. Keep
+The seed image only packages the plugin runtime and its installed npm project. Keep
 `XQUIK_API_KEY` and any approval policy in the OpenClaw runtime configuration or secret
 store, not in the seed config, Dockerfile, image labels, or committed examples.
 
-TweetClaw installs a helper skill under OpenClaw's `plugin-skills` directory. This seed
-image now exports and restores that directory so offline runtimes keep both the plugin
-runtime and the matching agent guidance.
+TweetClaw installs as an OpenClaw npm plugin project. This seed image exports and
+restores OpenClaw's `npm/projects` cache so offline runtimes can discover the plugin
+and regenerate generated `plugin-skills` content themselves.
 
 ## 📁 Optional vendoring for strict offline builds
 
 If you do not want build-time network installs, vendor local content:
 
 - `plugins/<plugin-id>/...`
-- `plugin-skills/<plugin-id>/...`
+- `npm/projects/<project-id>/...`
 - `skills/<skill-name>/...`
 
 Those directories are copied directly into the seed payload.
@@ -185,13 +185,13 @@ OPENCLAW_HOME_DIR=/home/node/.openclaw
 kubectl -n <namespace> exec <openclaw-pod-or-deploy> -- sh -lc \
   "ls -la ${OPENCLAW_HOME_DIR}/extensions"
 
+# Check seeded npm plugin projects
+kubectl -n <namespace> exec <openclaw-pod-or-deploy> -- sh -lc \
+  "ls -la ${OPENCLAW_HOME_DIR}/npm/projects"
+
 # Check seeded skills
 kubectl -n <namespace> exec <openclaw-pod-or-deploy> -- sh -lc \
   "ls -la ${OPENCLAW_HOME_DIR}/workspace/skills"
-
-# Check plugin-bundled helper skills
-kubectl -n <namespace> exec <openclaw-pod-or-deploy> -- sh -lc \
-  "ls -la ${OPENCLAW_HOME_DIR}/plugin-skills"
 ```
 
 ## 📌 Notes

@@ -2,6 +2,8 @@
 set -eu
 
 CONFIG_FILE="${1:-/seed-config/seed-config.json}"
+BUILD_OPENCLAW_HOME="${OPENCLAW_HOME:-/tmp/openclaw-home}"
+BUILD_OPENCLAW_DOT_HOME="$BUILD_OPENCLAW_HOME/.openclaw"
 
 log() {
   printf '%s %s\n' "[$(date -u +%Y-%m-%dT%H:%M:%SZ)]" "[offline-seed-build] $*"
@@ -17,8 +19,8 @@ node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));' "$CON
 
 mkdir -p /seed/skills
 mkdir -p /seed/extensions
-mkdir -p /seed/plugin-skills
-mkdir -p /tmp/openclaw-home/.openclaw/workspace/skills
+mkdir -p /seed/npm/projects
+mkdir -p "$BUILD_OPENCLAW_DOT_HOME/workspace/skills"
 
 log "Using config: $CONFIG_FILE"
 
@@ -70,7 +72,7 @@ install_skills_from_config() {
   ' "$CONFIG_FILE" | while IFS= read -r slug; do
     [ -z "$slug" ] && continue
     log "Installing skill: $slug"
-    cd /tmp/openclaw-home/.openclaw/workspace
+    cd "$BUILD_OPENCLAW_DOT_HOME/workspace"
     if ! npx -y clawhub install "$slug" --no-input; then
       log "WARNING: failed to install skill: $slug"
     fi
@@ -80,15 +82,15 @@ install_skills_from_config() {
 install_plugins_from_config
 install_skills_from_config
 
-# Export installed extensions, skills, and plugin-bundled helper skills from build-time OPENCLAW_HOME.
-if [ -d /tmp/openclaw-home/.openclaw/extensions ]; then
-  cp -a /tmp/openclaw-home/.openclaw/extensions/. /seed/extensions/
+# Export installed extensions, skills, and npm plugin projects from build-time OPENCLAW_HOME.
+if [ -d "$BUILD_OPENCLAW_DOT_HOME/extensions" ]; then
+  cp -a "$BUILD_OPENCLAW_DOT_HOME/extensions/." /seed/extensions/
 fi
-if [ -d /tmp/openclaw-home/.openclaw/workspace/skills ]; then
-  cp -a /tmp/openclaw-home/.openclaw/workspace/skills/. /seed/skills/
+if [ -d "$BUILD_OPENCLAW_DOT_HOME/workspace/skills" ]; then
+  cp -a "$BUILD_OPENCLAW_DOT_HOME/workspace/skills/." /seed/skills/
 fi
-if [ -d /tmp/openclaw-home/.openclaw/plugin-skills ]; then
-  cp -a /tmp/openclaw-home/.openclaw/plugin-skills/. /seed/plugin-skills/
+if [ -d "$BUILD_OPENCLAW_HOME/npm/projects" ]; then
+  cp -a "$BUILD_OPENCLAW_HOME/npm/projects/." /seed/npm/projects/
 fi
 
 # Merge vendored local content (useful for fully offline builds).
@@ -96,9 +98,9 @@ if [ -d /seed-local/plugins ] && [ "$(ls -A /seed-local/plugins 2>/dev/null)" ];
   log "Copying vendored local plugins from /seed-local/plugins"
   cp -a /seed-local/plugins/. /seed/extensions/
 fi
-if [ -d /seed-local/plugin-skills ] && [ "$(ls -A /seed-local/plugin-skills 2>/dev/null)" ]; then
-  log "Copying vendored local plugin skills from /seed-local/plugin-skills"
-  cp -a /seed-local/plugin-skills/. /seed/plugin-skills/
+if [ -d /seed-local/npm/projects ] && [ "$(ls -A /seed-local/npm/projects 2>/dev/null)" ]; then
+  log "Copying vendored local npm projects from /seed-local/npm/projects"
+  cp -a /seed-local/npm/projects/. /seed/npm/projects/
 fi
 if [ -d /seed-local/skills ] && [ "$(ls -A /seed-local/skills 2>/dev/null)" ]; then
   log "Copying vendored local skills from /seed-local/skills"
