@@ -24,7 +24,7 @@ repeatability are especially welcome.
 
 ```bash
 IMAGE=local/openclaw-offline-seed:dev \
-OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.5.22 \
+OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.6.6 \
 CONFIG_PATH=config/seed-config.json \
 ./build.sh
 ```
