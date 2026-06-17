@@ -84,7 +84,7 @@ when you want an offline seed image that preinstalls TweetClaw:
 
 ```bash
 IMAGE=REGISTRY/openclaw-offline-seed:tweetclaw \
-OPENCLAW_IMAGE=REGISTRY/openclaw:2026.6.6 \
+OPENCLAW_IMAGE=REGISTRY/openclaw:2026.6.8 \
 CONFIG_PATH=examples/tweetclaw-seed-config.json \
 ./build.sh
 ```
@@ -113,7 +113,7 @@ Those directories are copied directly into the seed payload.
 cd openclaw-offline-seed
 
 IMAGE=REGISTRY/openclaw-offline-seed:v1 \
-OPENCLAW_IMAGE=REGISTRY/openclaw:2026.6.6 \
+OPENCLAW_IMAGE=REGISTRY/openclaw:2026.6.8 \
 CONFIG_PATH=config/seed-config.json \
 ./build.sh
 
@@ -165,7 +165,7 @@ docker run --rm \
 docker run -d --name openclaw \
   -p 18789:18789 \
   -v openclaw-data:"$OPENCLAW_HOME_DIR" \
-  REGISTRY/openclaw:2026.6.6 \
+  REGISTRY/openclaw:2026.6.8 \
   sh -lc 'node openclaw.mjs config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true && node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured'
 ```
 
