@@ -29,6 +29,7 @@ This project is not tied to one chart. You can integrate it with:
 ## 📦 What gets seeded
 
 - `extensions/*` (plugins)
+- `npm/projects/*` (installed npm plugin projects)
 - `workspace/skills/*` (skills)
 
 ## 🏠 Runtime home path
@@ -66,11 +67,42 @@ Edit [`config/seed-config.json`](./config/seed-config.json):
 
 Schema reference: [`config/seed-config.schema.json`](./config/seed-config.schema.json)
 
+## 🧪 Example: TweetClaw X/Twitter seed
+
+TweetClaw is an OpenClaw plugin for X/Twitter automation: scrape tweets, search tweets,
+search tweet replies, post tweets, post tweet replies, export followers, look up users,
+handle media upload and media download, send direct messages, monitor tweets, deliver
+webhooks, and run giveaway draws through Xquik.
+
+Use the [TweetClaw GitHub repo](https://github.com/Xquik-dev/tweetclaw),
+[npm package](https://www.npmjs.com/package/@xquik/tweetclaw), and
+[ClawHub listing](https://clawhub.ai/plugins/@xquik/tweetclaw) as the public
+reference links for the plugin.
+
+Use [`examples/tweetclaw-seed-config.json`](./examples/tweetclaw-seed-config.json)
+when you want an offline seed image that preinstalls TweetClaw:
+
+```bash
+IMAGE=REGISTRY/openclaw-offline-seed:tweetclaw \
+OPENCLAW_IMAGE=REGISTRY/openclaw:2026.6.8 \
+CONFIG_PATH=examples/tweetclaw-seed-config.json \
+./build.sh
+```
+
+The seed image only packages the plugin runtime and its installed npm project. Keep
+`XQUIK_API_KEY` and any approval policy in the OpenClaw runtime configuration or secret
+store, not in the seed config, Dockerfile, image labels, or committed examples.
+
+TweetClaw installs as an OpenClaw npm plugin project. This seed image exports and
+restores OpenClaw's `npm/projects` cache so offline runtimes can discover the plugin
+and regenerate generated `plugin-skills` content themselves.
+
 ## 📁 Optional vendoring for strict offline builds
 
 If you do not want build-time network installs, vendor local content:
 
 - `plugins/<plugin-id>/...`
+- `npm/projects/<project-id>/...`
 - `skills/<skill-name>/...`
 
 Those directories are copied directly into the seed payload.
@@ -81,7 +113,7 @@ Those directories are copied directly into the seed payload.
 cd openclaw-offline-seed
 
 IMAGE=REGISTRY/openclaw-offline-seed:v1 \
-OPENCLAW_IMAGE=REGISTRY/openclaw:2026.3.13-1 \
+OPENCLAW_IMAGE=REGISTRY/openclaw:2026.6.8 \
 CONFIG_PATH=config/seed-config.json \
 ./build.sh
 
@@ -133,7 +165,7 @@ docker run --rm \
 docker run -d --name openclaw \
   -p 18789:18789 \
   -v openclaw-data:"$OPENCLAW_HOME_DIR" \
-  REGISTRY/openclaw:2026.3.13-1 \
+  REGISTRY/openclaw:2026.6.8 \
   sh -lc 'node openclaw.mjs config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true && node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured'
 ```
 
@@ -152,6 +184,10 @@ OPENCLAW_HOME_DIR=/home/node/.openclaw
 # Check seeded plugins
 kubectl -n <namespace> exec <openclaw-pod-or-deploy> -- sh -lc \
   "ls -la ${OPENCLAW_HOME_DIR}/extensions"
+
+# Check seeded npm plugin projects
+kubectl -n <namespace> exec <openclaw-pod-or-deploy> -- sh -lc \
+  "ls -la ${OPENCLAW_HOME_DIR}/npm/projects"
 
 # Check seeded skills
 kubectl -n <namespace> exec <openclaw-pod-or-deploy> -- sh -lc \

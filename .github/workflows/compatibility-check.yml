@@ -18,6 +18,7 @@ on:
       - scripts/**
       - config/**
       - plugins/**
+      - npm/**
       - skills/**
       - .github/workflows/compatibility-check.yml
 
@@ -76,7 +77,7 @@ jobs:
           docker run --rm -u 0 \
             -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
             alpine:3.20 \
-            sh -lc "mkdir -p '$OPENCLAW_HOME_DIR/workspace' '$OPENCLAW_HOME_DIR/extensions' && chown -R 1000:1000 '$OPENCLAW_HOME_DIR'"
+            sh -lc "mkdir -p '$OPENCLAW_HOME_DIR/workspace' '$OPENCLAW_HOME_DIR/extensions' '$OPENCLAW_HOME_DIR/npm/projects' && chown -R 1000:1000 '$OPENCLAW_HOME_DIR'"
 
           docker run --rm \
             -e OPENCLAW_HOME_DIR="$OPENCLAW_HOME_DIR" \
@@ -86,7 +87,7 @@ jobs:
           docker run --rm \
             -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
             alpine:3.20 \
-            sh -lc "test -d '$OPENCLAW_HOME_DIR/extensions' && test -d '$OPENCLAW_HOME_DIR/workspace/skills'"
+            sh -lc "test -d '$OPENCLAW_HOME_DIR/extensions' && test -d '$OPENCLAW_HOME_DIR/workspace/skills' && test -d '$OPENCLAW_HOME_DIR/npm/projects'"
 
       - name: Validate runtime starts with shared volume
         run: |
@@ -110,6 +111,7 @@ jobs:
           set -eux
           docker exec "$RUNTIME_CONTAINER" sh -lc "ls -la '$OPENCLAW_HOME_DIR/extensions'"
           docker exec "$RUNTIME_CONTAINER" sh -lc "ls -la '$OPENCLAW_HOME_DIR/workspace/skills'"
+          docker exec "$RUNTIME_CONTAINER" sh -lc "ls -la '$OPENCLAW_HOME_DIR/npm/projects'"
 
       - name: Dump runtime logs on failure
         if: failure()
