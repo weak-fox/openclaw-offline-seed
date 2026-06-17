@@ -38,6 +38,7 @@ jobs:
       SEED_IMAGE: local/openclaw-offline-seed:compat
       SHARED_VOLUME: openclaw-shared-compat
       RUNTIME_CONTAINER: openclaw-runtime-compat
+      OPENCLAW_GATEWAY_TOKEN: compatibility-test-token
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -95,6 +96,7 @@ jobs:
           docker rm -f "$RUNTIME_CONTAINER" >/dev/null 2>&1 || true
           docker run -d --name "$RUNTIME_CONTAINER" \
             -e OPENCLAW_HOME_DIR="$OPENCLAW_HOME_DIR" \
+            -e OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN" \
             -v "$SHARED_VOLUME:$OPENCLAW_HOME_DIR" \
             "${{ steps.resolve_image.outputs.openclaw_image }}" \
             sh -lc "node openclaw.mjs config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true && node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured"
